@@ -6,7 +6,7 @@
     "mobile"
   ],
   "scripts": {
-    "build": "cd mobile && npx --yes expo export -p web",
+    "build": "cd mobile && npx --yes expo export -p web && node -e \"const fs = require('fs'); fs.cpSync('dist', '../dist', {recursive: true})\"",
     "start:mobile": "cd mobile && npx expo start",
     "start:backend": "cd backend && uvicorn app.main:app --reload"
   }
