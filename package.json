@@ -2,8 +2,11 @@
   "name": "aurum-trading-platform",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "mobile"
+  ],
   "scripts": {
-    "build": "cd mobile && npm install && npx expo export -p web",
+    "build": "cd mobile && npx --yes expo export -p web",
     "start:mobile": "cd mobile && npx expo start",
     "start:backend": "cd backend && uvicorn app.main:app --reload"
   }
