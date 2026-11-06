@@ -250,6 +250,100 @@ async def learn() -> list[dict]:
     return LESSONS
 
 
+class ApiKeyUpdate(BaseModel):
+    gemini_api_key: str | None = None
+    binance_api_key: str | None = None
+    binance_api_secret: str | None = None
+    oanda_api_key: str | None = None
+    alpaca_api_key: str | None = None
+    alpaca_api_secret: str | None = None
+    trading_mode: str | None = None
+
+
+def _mask(val: str) -> str:
+    if not val:
+        return ""
+    if len(val) <= 8:
+        return "••••" + val[-2:]
+    return val[:4] + "••••••••" + val[-4:]
+
+
+@app.get("/api-keys", dependencies=[Depends(auth)])
+async def get_api_keys() -> dict:
+    s = get_settings()
+    return {
+        "gemini": {
+            "configured": bool(s.gemini_api_key),
+            "preview": _mask(s.gemini_api_key),
+            "model": s.gemini_model,
+            "free_info": "Get your 100% free Gemini API key at https://aistudio.google.com/app/apikey"
+        },
+        "binance": {
+            "configured": bool(s.binance_api_key and s.binance_api_secret),
+            "key_preview": _mask(s.binance_api_key),
+            "testnet": s.binance_testnet
+        },
+        "oanda": {
+            "configured": bool(s.oanda_api_key),
+            "key_preview": _mask(s.oanda_api_key),
+            "practice": s.oanda_practice
+        },
+        "alpaca": {
+            "configured": bool(s.alpaca_api_key and s.alpaca_api_secret),
+            "key_preview": _mask(s.alpaca_api_key),
+            "paper": s.alpaca_paper
+        },
+        "trading_mode": s.trading_mode
+    }
+
+
+@app.post("/api-keys", dependencies=[Depends(auth)])
+async def save_api_keys(body: ApiKeyUpdate) -> dict:
+    from .config import update_setting
+    updated = []
+    if body.gemini_api_key is not None:
+        update_setting("gemini_api_key", body.gemini_api_key.strip())
+        updated.append("gemini")
+    if body.binance_api_key is not None:
+        update_setting("binance_api_key", body.binance_api_key.strip())
+        updated.append("binance_key")
+    if body.binance_api_secret is not None:
+        update_setting("binance_api_secret", body.binance_api_secret.strip())
+        updated.append("binance_secret")
+    if body.oanda_api_key is not None:
+        update_setting("oanda_api_key", body.oanda_api_key.strip())
+        updated.append("oanda")
+    if body.alpaca_api_key is not None:
+        update_setting("alpaca_api_key", body.alpaca_api_key.strip())
+        updated.append("alpaca_key")
+    if body.alpaca_api_secret is not None:
+        update_setting("alpaca_api_secret", body.alpaca_api_secret.strip())
+        updated.append("alpaca_secret")
+    if body.trading_mode is not None:
+        update_setting("trading_mode", body.trading_mode)
+        updated.append("trading_mode")
+
+    db.log(f"API Keys updated via UI: {', '.join(updated)}", "info")
+    return {"ok": True, "updated": updated, "keys": await get_api_keys()}
+
+
+class TestKeyBody(BaseModel):
+    api_key: str
+    provider: str = "gemini"
+
+
+@app.post("/api-keys/test", dependencies=[Depends(auth)])
+async def test_api_key(body: TestKeyBody) -> dict:
+    if body.provider == "gemini":
+        return await intel.test_gemini_key(body.api_key)
+    return {"success": False, "error": f"Testing not supported for {body.provider}"}
+
+
+@app.get("/intel/market-radar", dependencies=[Depends(auth)])
+async def market_radar() -> dict:
+    return await intel.ai_market_radar()
+
+
 @app.get("/activity", dependencies=[Depends(auth)])
 async def activity(limit: int = 60) -> list[dict]:
     return db.query("SELECT * FROM activity ORDER BY id DESC LIMIT ?", (limit,))

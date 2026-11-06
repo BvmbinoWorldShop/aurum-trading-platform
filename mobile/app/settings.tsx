@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../src/theme/colors';
 import { HapticTouchable } from '../src/components/HapticTouchable';
@@ -20,6 +21,7 @@ import { useApp } from '../src/context/AppContext';
 import { haptic } from '../src/utils/haptics';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const { updateServerUrl, refreshDashboard } = useApp();
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -106,6 +108,24 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Quick Access to In-App API Key Manager */}
+        <HapticTouchable
+          style={styles.apiKeyHubBanner}
+          onPress={() => router.push('/api-keys')}
+          hapticType="selection"
+        >
+          <View style={styles.apiHubIconCircle}>
+            <Ionicons name="key" size={18} color="#000" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.apiHubTitle}>FREE AI & BROKER API KEYS HUB</Text>
+            <Text style={styles.apiHubSub}>
+              Enter & test your free Google Gemini key or connect Binance & OANDA directly here.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.gold} />
+        </HapticTouchable>
+
         {/* Network & Backend Server */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -314,6 +334,36 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 16,
     paddingBottom: 40,
+  },
+  apiKeyHubBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(255, 215, 0, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+    borderRadius: 14,
+    padding: 14,
+  },
+  apiHubIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  apiHubTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: colors.gold,
+    letterSpacing: 0.8,
+  },
+  apiHubSub: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 2,
+    lineHeight: 15,
   },
   card: {
     backgroundColor: colors.bgSecondary,

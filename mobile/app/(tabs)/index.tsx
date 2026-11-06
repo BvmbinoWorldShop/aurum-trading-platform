@@ -17,6 +17,7 @@ import { HapticTouchable } from '../../src/components/HapticTouchable';
 import { GlassCard } from '../../src/components/GlassCard';
 import { GradientPill } from '../../src/components/GradientPill';
 import { TickerBar } from '../../src/components/TickerBar';
+import { AiMarketRadar } from '../../src/components/AiMarketRadar';
 import { api, SignalData, MarketAsset } from '../../src/api/endpoints';
 import { haptic } from '../../src/utils/haptics';
 
@@ -114,6 +115,14 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.headerActions}>
+          <HapticTouchable
+            style={[styles.glassIconBtn, { backgroundColor: 'rgba(255, 215, 0, 0.1)', borderColor: colors.borderGold }]}
+            onPress={() => router.push('/api-keys')}
+            hapticType="selection"
+          >
+            <Ionicons name="key" size={15} color={colors.goldBright} />
+          </HapticTouchable>
+
           <GradientPill
             label={isLive ? 'LIVE' : 'PAPER SOVEREIGN'}
             variant={isLive ? 'gold' : 'royal'}
@@ -241,6 +250,9 @@ export default function HomeScreen() {
             </View>
           </LinearGradient>
         </View>
+
+        {/* Live AI Market Intelligence Radar */}
+        <AiMarketRadar onOpenKeyManager={() => router.push('/api-keys')} />
 
         {/* Market Psychology & Fear/Greed Pod */}
         <GlassCard glowColor="gold" borderRadius={20} style={styles.cardPad}>

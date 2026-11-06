@@ -166,4 +166,9 @@ export const api = {
     apiFetch<PluginItem>(`/plugins/${id}/status`, { method: 'POST', body: JSON.stringify({ status }) }),
   learn: () => apiFetch<Lesson[]>('/learn'),
   activity: (limit = 40) => apiFetch<any[]>(`/activity?limit=${limit}`),
+  getApiKeys: () => apiFetch<any>('/api-keys'),
+  saveApiKeys: (patch: any) => apiFetch<any>('/api-keys', { method: 'POST', body: JSON.stringify(patch) }),
+  testApiKey: (apiKey: string, provider = 'gemini') =>
+    apiFetch<any>('/api-keys/test', { method: 'POST', body: JSON.stringify({ api_key: apiKey, provider }) }),
+  getMarketRadar: () => apiFetch<any>('/intel/market-radar'),
 };

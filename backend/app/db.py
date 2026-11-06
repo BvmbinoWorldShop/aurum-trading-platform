@@ -78,6 +78,20 @@ def execute(sql: str, params: tuple = ()) -> int:
         return cur.lastrowid or 0
 
 
+def get_kv(k: str, default: Any = None) -> Any:
+    rows = query("SELECT v FROM kv WHERE k=?", (k,))
+    if rows:
+        try:
+            return json.loads(rows[0]["v"])
+        except Exception:
+            return rows[0]["v"]
+    return default
+
+
+def set_kv(k: str, v: Any) -> None:
+    execute("INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)", (k, json.dumps(v)))
+
+
 def query(sql: str, params: tuple = ()) -> list[dict]:
     with _lock:
         return [dict(r) for r in conn().execute(sql, params).fetchall()]

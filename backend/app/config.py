@@ -54,6 +54,30 @@ class Settings(BaseSettings):
     db_path: str = "trading.db"
 
 
-@lru_cache
+_settings_instance: Settings | None = None
+
+
 def get_settings() -> Settings:
-    return Settings()
+    global _settings_instance
+    if _settings_instance is None:
+        _settings_instance = Settings()
+        try:
+            from . import db
+            for k in ("gemini_api_key", "binance_api_key", "binance_api_secret", "oanda_api_key", "alpaca_api_key", "alpaca_api_secret", "trading_mode"):
+                saved = db.get_kv(f"cfg_{k}")
+                if saved is not None:
+                    setattr(_settings_instance, k, saved)
+        except Exception:
+            pass
+    return _settings_instance
+
+
+def update_setting(key: str, value: Any) -> None:
+    s = get_settings()
+    if hasattr(s, key):
+        setattr(s, key, value)
+    try:
+        from . import db
+        db.set_kv(f"cfg_{key}", value)
+    except Exception:
+        pass

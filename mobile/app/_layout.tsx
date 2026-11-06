@@ -25,6 +25,13 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
+          name="api-keys"
+          options={{
+            title: 'Free AI & Broker API Hub',
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
           name="profile"
           options={{
             title: 'Sovereign Account & Payments',
