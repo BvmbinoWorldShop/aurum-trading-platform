@@ -8,12 +8,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { Badge } from '../../src/components/Badge';
+import { HapticTouchable } from '../../src/components/HapticTouchable';
 import { api, VaultData } from '../../src/api/endpoints';
 
 export default function VaultScreen() {
+  const router = useRouter();
   const [vault, setVault] = useState<VaultData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -38,8 +41,19 @@ export default function VaultScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>MULTI-BROKER VAULT</Text>
-        <Text style={styles.subtitle}>Unified custody & exchange connectivity</Text>
+        <View>
+          <Text style={styles.title}>MULTI-BROKER VAULT</Text>
+          <Text style={styles.subtitle}>Unified custody & exchange connectivity</Text>
+        </View>
+
+        <HapticTouchable
+          style={styles.cardPayBtn}
+          onPress={() => router.push('/profile')}
+          hapticType="selection"
+        >
+          <Ionicons name="card" size={16} color="#000" />
+          <Text style={styles.cardPayBtnText}>Cards & Pay</Text>
+        </HapticTouchable>
       </View>
 
       <ScrollView
@@ -194,9 +208,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgPrimary,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 4,
+  },
+  cardPayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.gold,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  cardPayBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#000',
   },
   title: {
     fontSize: 18,

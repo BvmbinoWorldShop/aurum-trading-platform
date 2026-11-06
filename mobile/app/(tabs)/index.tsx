@@ -103,6 +103,14 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.headerActions}>
+          <HapticTouchable
+            style={[styles.iconBtn, { backgroundColor: colors.goldGlow, borderColor: 'rgba(244, 196, 48, 0.3)', borderWidth: 1 }]}
+            onPress={() => router.push('/profile')}
+            hapticType="selection"
+          >
+            <Ionicons name="person" size={18} color={colors.gold} />
+          </HapticTouchable>
+
           <Badge
             label={isLive ? 'LIVE' : 'PAPER TRADING'}
             variant={isLive ? 'gold' : 'purple'}
