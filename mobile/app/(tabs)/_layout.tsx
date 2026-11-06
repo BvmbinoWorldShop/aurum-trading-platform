@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { Platform, View, StyleSheet } from 'react-native';
 import { colors } from '../../src/theme/colors';
 import { haptic } from '../../src/utils/haptics';
 
@@ -11,18 +11,25 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.bgSecondary,
-          borderTopColor: colors.border,
+          backgroundColor: 'rgba(10, 14, 24, 0.92)',
+          borderTopColor: 'rgba(255, 255, 255, 0.08)',
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 68,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+          height: Platform.OS === 'ios' ? 88 : 70,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 12,
           paddingTop: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -6 },
+          shadowOpacity: 0.5,
+          shadowRadius: 16,
+          elevation: 12,
         },
         tabBarActiveTintColor: colors.gold,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
+          fontSize: 10,
+          fontWeight: '700',
+          letterSpacing: 0.4,
+          marginTop: 2,
         },
       }}
       screenListeners={{
@@ -34,27 +41,45 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="sparkles" size={size} color={color as any} />
+          title: 'Terminal',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconGlow : null}>
+              <Ionicons
+                name={focused ? 'sparkles' : 'sparkles-outline'}
+                size={22}
+                color={color as any}
+              />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="markets"
         options={{
-          title: 'Markets',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="trending-up" size={size} color={color as any} />
+          title: 'Quant Radar',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconGlow : null}>
+              <Ionicons
+                name={focused ? 'pulse' : 'pulse-outline'}
+                size={22}
+                color={color as any}
+              />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="trades"
         options={{
-          title: 'Trades',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="swap-horizontal" size={size} color={color as any} />
+          title: 'Execution',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconGlow : null}>
+              <Ionicons
+                name={focused ? 'swap-horizontal' : 'swap-horizontal-outline'}
+                size={22}
+                color={color as any}
+              />
+            </View>
           ),
         }}
       />
@@ -62,20 +87,41 @@ export default function TabLayout() {
         name="vault"
         options={{
           title: 'Vault',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="wallet" size={size} color={color as any} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconGlow : null}>
+              <Ionicons
+                name={focused ? 'wallet' : 'wallet-outline'}
+                size={22}
+                color={color as any}
+              />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="agent"
         options={{
-          title: 'AI Agent',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bulb" size={size} color={color as any} />
+          title: 'AI Aurum',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconGlow : null}>
+              <Ionicons
+                name={focused ? 'hardware-chip' : 'hardware-chip-outline'}
+                size={22}
+                color={color as any}
+              />
+            </View>
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  activeIconGlow: {
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 10,
+  },
+});

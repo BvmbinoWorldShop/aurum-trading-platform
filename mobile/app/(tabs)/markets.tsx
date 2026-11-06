@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../src/theme/colors';
 import { HapticTouchable } from '../../src/components/HapticTouchable';
-import { Badge } from '../../src/components/Badge';
+import { GlassCard } from '../../src/components/GlassCard';
+import { GradientPill } from '../../src/components/GradientPill';
 import { Sparkline } from '../../src/components/Sparkline';
 import { api, MarketAsset, SignalData, BacktestResult } from '../../src/api/endpoints';
 import { haptic } from '../../src/utils/haptics';
@@ -121,26 +123,33 @@ export default function MarketsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Top Header */}
+      {/* Top Glass Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>MARKETS & QUANT MODELS</Text>
-        <Text style={styles.subtitle}>Multi-asset predictive screening</Text>
+        <View>
+          <Text style={styles.title}>QUANT RADAR</Text>
+          <Text style={styles.subtitle}>Multi-asset predictive intelligence & backtests</Text>
+        </View>
+
+        <GradientPill
+          label="REAL-TIME"
+          variant="bullish"
+          icon={<View style={styles.greenPulse} />}
+          size="sm"
+        />
       </View>
 
-      {/* Category Pills */}
+      {/* Category Gradient Pills */}
       <View style={styles.pillsContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsScroll}>
           {CATEGORIES.map((cat) => (
-            <HapticTouchable
+            <GradientPill
               key={cat}
-              style={[styles.pill, category === cat && styles.pillActive]}
-              hapticType="selection"
+              label={cat}
+              variant={category === cat ? 'gold' : 'glass'}
+              active={category === cat}
+              size="sm"
               onPress={() => setCategory(cat)}
-            >
-              <Text style={[styles.pillText, category === cat && styles.pillTextActive]}>
-                {cat}
-              </Text>
-            </HapticTouchable>
+            />
           ))}
         </ScrollView>
       </View>
@@ -148,6 +157,7 @@ export default function MarketsScreen() {
       {/* Markets List */}
       <ScrollView
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -167,43 +177,44 @@ export default function MarketsScreen() {
             return (
               <HapticTouchable
                 key={item.symbol}
-                style={styles.marketCard}
                 onPress={() => openAssetModal(item)}
               >
-                <View style={styles.marketLeft}>
-                  <Text style={styles.assetSymbol}>{item.symbol}</Text>
-                  <Text style={styles.assetSub}>
-                    {item.name} · <Text style={{ textTransform: 'capitalize' }}>{item.broker}</Text>
-                  </Text>
-                </View>
-
-                {item.spark && item.spark.length > 2 && (
-                  <View style={styles.sparkContainer}>
-                    <Sparkline data={item.spark} width={75} height={28} />
+                <GlassCard
+                  glowColor={isPos ? 'bullish' : 'bearish'}
+                  borderRadius={18}
+                  style={styles.marketCard}
+                >
+                  <View style={styles.marketLeft}>
+                    <Text style={styles.assetSymbol}>{item.symbol}</Text>
+                    <Text style={styles.assetSub}>
+                      {item.name} · <Text style={{ textTransform: 'capitalize' }}>{item.broker}</Text>
+                    </Text>
                   </View>
-                )}
 
-                <View style={styles.marketRight}>
-                  <Text style={styles.priceVal}>
-                    ${item.price < 10 ? item.price.toFixed(4) : item.price.toLocaleString()}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.changeVal,
-                      { color: isPos ? colors.bullish : colors.bearish },
-                    ]}
-                  >
-                    {isPos ? '+' : ''}
-                    {(item.change_24h_pct ?? 0).toFixed(2)}%
-                  </Text>
-                </View>
+                  {item.spark && item.spark.length > 2 && (
+                    <View style={styles.sparkContainer}>
+                      <Sparkline data={item.spark} width={80} height={30} />
+                    </View>
+                  )}
+
+                  <View style={styles.marketRight}>
+                    <Text style={styles.priceVal}>
+                      ${item.price < 10 ? item.price.toFixed(4) : item.price.toLocaleString()}
+                    </Text>
+                    <GradientPill
+                      label={`${isPos ? '+' : ''}${(item.change_24h_pct ?? 0).toFixed(2)}%`}
+                      variant={isPos ? 'bullish' : 'bearish'}
+                      size="sm"
+                    />
+                  </View>
+                </GlassCard>
               </HapticTouchable>
             );
           })
         )}
       </ScrollView>
 
-      {/* Asset Deep-Dive Modal */}
+      {/* Asset Deep-Dive & Quant Terminal Modal */}
       <Modal
         visible={!!selectedAsset}
         animationType="slide"
@@ -220,23 +231,23 @@ export default function MarketsScreen() {
               style={styles.closeBtn}
               onPress={() => setSelectedAsset(null)}
             >
-              <Ionicons name="close" size={24} color={colors.textPrimary} />
+              <Ionicons name="close" size={20} color={colors.textPrimary} />
             </HapticTouchable>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalBody}>
+          <ScrollView contentContainerStyle={styles.modalBody} showsVerticalScrollIndicator={false}>
             {signalLoading ? (
               <View style={styles.centerLoading}>
                 <ActivityIndicator size="large" color={colors.gold} />
-                <Text style={styles.loadingText}>Running Walk-Forward Machine Learning Models...</Text>
+                <Text style={styles.loadingText}>Running Walk-Forward Machine Learning Confluence...</Text>
               </View>
             ) : signal ? (
               <>
-                {/* Prediction Summary Card */}
-                <View style={styles.signalCard}>
+                {/* Prediction Summary Glass Card */}
+                <GlassCard glowColor="gold" borderRadius={20} style={styles.signalCardPad}>
                   <View style={styles.signalCardHeader}>
-                    <Badge
-                      label={signal.direction}
+                    <GradientPill
+                      label={`PREDICTED: ${signal.direction}`}
                       variant={
                         signal.direction === 'LONG'
                           ? 'bullish'
@@ -247,79 +258,67 @@ export default function MarketsScreen() {
                       size="md"
                     />
                     <Text style={styles.confBadge}>
-                      Calibrated Confidence: {(signal.confidence * 100).toFixed(0)}%
+                      Calibrated Confidence: <Text style={{ color: colors.goldBright, fontWeight: '900' }}>{(signal.confidence * 100).toFixed(0)}%</Text>
                     </Text>
                   </View>
 
-                  <View style={styles.grid2}>
-                    <View style={styles.gridItem}>
-                      <Text style={styles.gridLabel}>P(LONG WINS)</Text>
-                      <Text style={[styles.gridVal, { color: colors.bullish }]}>
+                  {/* Dual Win Probability Meters */}
+                  <View style={styles.probContainer}>
+                    <View style={styles.probRow}>
+                      <Text style={styles.probLabel}>P(LONG WINS TARGET)</Text>
+                      <Text style={[styles.probVal, { color: colors.bullish }]}>
                         {(signal.p_long * 100).toFixed(1)}%
                       </Text>
                     </View>
-                    <View style={styles.gridItem}>
-                      <Text style={styles.gridLabel}>P(SHORT WINS)</Text>
-                      <Text style={[styles.gridVal, { color: colors.bearish }]}>
+                    <View style={styles.meterTrack}>
+                      <LinearGradient
+                        colors={['#00F5A0', '#00D9F5']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.meterFill, { width: `${Math.min(100, signal.p_long * 100)}%` }]}
+                      />
+                    </View>
+
+                    <View style={[styles.probRow, { marginTop: 10 }]}>
+                      <Text style={styles.probLabel}>P(SHORT WINS TARGET)</Text>
+                      <Text style={[styles.probVal, { color: colors.bearish }]}>
                         {(signal.p_short * 100).toFixed(1)}%
                       </Text>
                     </View>
-                    <View style={styles.gridItem}>
-                      <Text style={styles.gridLabel}>STOP LOSS</Text>
-                      <Text style={styles.gridVal}>
-                        ${signal.stop?.toFixed(2) || 'N/A'}
-                      </Text>
+                    <View style={styles.meterTrack}>
+                      <LinearGradient
+                        colors={['#FF416C', '#FF4B2B']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.meterFill, { width: `${Math.min(100, signal.p_short * 100)}%` }]}
+                      />
                     </View>
-                    <View style={styles.gridItem}>
-                      <Text style={styles.gridLabel}>TAKE PROFIT</Text>
-                      <Text style={styles.gridVal}>
-                        ${signal.take_profit?.toFixed(2) || 'N/A'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.subStatsRow}>
-                    <Text style={styles.subStatText}>
-                      Market Regime: <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>{signal.regime.toUpperCase()}</Text>
-                    </Text>
-                    <Text style={styles.subStatText}>
-                      Out-of-sample Win Rate:{' '}
-                      <Text style={{ color: colors.gold, fontWeight: '700' }}>
-                        {signal.validated_win_rate ? `${(signal.validated_win_rate * 100).toFixed(0)}% (${signal.validated_trades} trades)` : 'N/A'}
-                      </Text>
-                    </Text>
                   </View>
 
                   {/* Quantitative Rationale */}
                   <View style={styles.reasonsBox}>
-                    <Text style={styles.reasonsTitle}>MODEL RATIONALE & METRICS</Text>
+                    <Text style={styles.reasonsTitle}>MODEL RATIONALE & SIGNALS</Text>
                     {signal.reasons.map((r, i) => (
                       <Text key={i} style={styles.reasonLine}>
                         • {r}
                       </Text>
                     ))}
                   </View>
-                </View>
+                </GlassCard>
 
-                {/* Backtester Section */}
-                <View style={styles.backtestCard}>
-                  <View style={styles.cardHeader}>
+                {/* Walk-Forward Backtester Section */}
+                <GlassCard glowColor="purple" borderRadius={20} style={styles.backtestCardPad}>
+                  <View style={styles.backtestHeader}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Ionicons name="bar-chart" size={18} color={colors.gold} />
+                      <Ionicons name="bar-chart" size={18} color={colors.purple} />
                       <Text style={styles.cardTitle}>WALK-FORWARD BACKTESTER</Text>
                     </View>
-                    <HapticTouchable
-                      style={styles.backtestBtn}
+                    <GradientPill
+                      label={backtesting ? 'TESTING...' : 'RUN SIMULATION'}
+                      variant="gold"
+                      size="sm"
                       onPress={handleRunBacktest}
-                      disabled={backtesting}
-                      hapticType="medium"
-                    >
-                      {backtesting ? (
-                        <ActivityIndicator size="small" color="#000" />
-                      ) : (
-                        <Text style={styles.backtestBtnText}>Run Backtest</Text>
-                      )}
-                    </HapticTouchable>
+                    />
                   </View>
 
                   {backtest ? (
@@ -327,7 +326,7 @@ export default function MarketsScreen() {
                       <View style={styles.grid3}>
                         <View style={styles.gridItemSmall}>
                           <Text style={styles.gridLabel}>WIN RATE</Text>
-                          <Text style={[styles.gridValSmall, { color: colors.gold }]}>
+                          <Text style={[styles.gridValSmall, { color: colors.goldBright }]}>
                             {backtest.win_rate ? `${(backtest.win_rate * 100).toFixed(1)}%` : 'N/A'}
                           </Text>
                         </View>
@@ -345,7 +344,7 @@ export default function MarketsScreen() {
                         </View>
                       </View>
 
-                      <View style={styles.grid3}>
+                      <View style={[styles.grid3, { marginTop: 8 }]}>
                         <View style={styles.gridItemSmall}>
                           <Text style={styles.gridLabel}>TOTAL RETURN</Text>
                           <Text
@@ -369,13 +368,13 @@ export default function MarketsScreen() {
                           </Text>
                         </View>
                         <View style={styles.gridItemSmall}>
-                          <Text style={styles.gridLabel}>TOTAL TRADES</Text>
+                          <Text style={styles.gridLabel}>TRADES EVALUATED</Text>
                           <Text style={styles.gridValSmall}>{backtest.trades}</Text>
                         </View>
                       </View>
 
                       {backtest.equity_curve && (
-                        <View style={{ marginTop: 12 }}>
+                        <View style={{ marginTop: 14 }}>
                           <Text style={[styles.gridLabel, { marginBottom: 6 }]}>
                             OUT-OF-SAMPLE EQUITY CURVE
                           </Text>
@@ -383,39 +382,36 @@ export default function MarketsScreen() {
                             data={backtest.equity_curve}
                             width={320}
                             height={60}
-                            color={colors.gold}
+                            color={colors.goldBright}
                           />
                         </View>
                       )}
                     </View>
                   ) : (
                     <Text style={styles.backtestPrompt}>
-                      Tap "Run Backtest" to test this quantitative model over hundreds of bars using walk-forward retraining without look-ahead bias.
+                      Tap "Run Simulation" to retrain this model over hundreds of bars using purged walk-forward splits to measure genuine out-of-sample expectancy.
                     </Text>
                   )}
-                </View>
+                </GlassCard>
 
                 {/* Trade Execution Button */}
                 {signal.direction !== 'FLAT' && (
                   <HapticTouchable
-                    style={[
-                      styles.executeBtn,
-                      {
-                        backgroundColor:
-                          signal.direction === 'LONG' ? colors.bullish : colors.bearish,
-                      },
-                    ]}
+                    style={styles.execBtn}
                     hapticType="heavy"
                     onPress={handleExecute}
                     disabled={executing}
                   >
-                    {executing ? (
-                      <ActivityIndicator color="#000" />
-                    ) : (
-                      <Text style={styles.executeBtnText}>
-                        EXECUTE {signal.direction} WITH RISK MANAGER
+                    <LinearGradient
+                      colors={signal.direction === 'LONG' ? ['#00F5A0', '#00D9F5'] : ['#FF416C', '#FF4B2B']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.execGradient}
+                    >
+                      <Text style={styles.execBtnText}>
+                        EXECUTE {signal.direction} WITH RISK GUARDIAN
                       </Text>
-                    )}
+                    </LinearGradient>
                   </HapticTouchable>
                 )}
               </>
@@ -430,23 +426,32 @@ export default function MarketsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgPrimary,
+    backgroundColor: colors.bgVoid,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 10,
+    paddingBottom: 6,
   },
   title: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textPrimary,
     letterSpacing: 1,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  greenPulse: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.bullish,
   },
   pillsContainer: {
     paddingVertical: 10,
@@ -455,51 +460,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
   },
-  pill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pillActive: {
-    backgroundColor: colors.goldGlow,
-    borderColor: colors.gold,
-  },
-  pillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  pillTextActive: {
-    color: colors.gold,
-  },
   listContent: {
     padding: 16,
-    gap: 10,
+    gap: 12,
     paddingBottom: 30,
   },
   marketCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.bgSecondary,
     padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   marketLeft: {
     flex: 1,
   },
   assetSymbol: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textPrimary,
   },
   assetSub: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMuted,
     marginTop: 2,
   },
@@ -508,20 +489,16 @@ const styles = StyleSheet.create({
   },
   marketRight: {
     alignItems: 'flex-end',
+    gap: 4,
   },
   priceVal: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     color: colors.textPrimary,
-  },
-  changeVal: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 2,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: colors.bgPrimary,
+    backgroundColor: colors.bgVoid,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -530,11 +507,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderGlass,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textPrimary,
   },
   modalSubtitle: {
@@ -542,9 +519,14 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   closeBtn: {
-    padding: 6,
-    backgroundColor: colors.bgElevated,
-    borderRadius: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalBody: {
     padding: 16,
@@ -560,12 +542,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
-  signalCard: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: 14,
+  signalCardPad: {
     padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   signalCardHeader: {
     flexDirection: 'row',
@@ -575,50 +553,47 @@ const styles = StyleSheet.create({
   },
   confBadge: {
     fontSize: 12,
-    fontWeight: '700',
-    color: colors.gold,
+    color: colors.textSecondary,
   },
-  grid2: {
+  probContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
+    marginBottom: 12,
+  },
+  probRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 14,
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
-  gridItem: {
-    width: '48%',
-    backgroundColor: colors.bgCard,
-    padding: 10,
-    borderRadius: 8,
-  },
-  gridLabel: {
+  probLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textMuted,
     letterSpacing: 0.5,
   },
-  gridVal: {
-    fontSize: 15,
+  probVal: {
+    fontSize: 13,
     fontWeight: '800',
-    color: colors.textPrimary,
-    marginTop: 2,
   },
-  subStatsRow: {
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-    gap: 4,
+  meterTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    overflow: 'hidden',
   },
-  subStatText: {
-    fontSize: 12,
-    color: colors.textSecondary,
+  meterFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   reasonsBox: {
-    marginTop: 12,
+    marginTop: 8,
     gap: 4,
   },
   reasonsTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     color: colors.gold,
     letterSpacing: 0.5,
@@ -629,14 +604,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 18,
   },
-  backtestCard: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: 14,
+  backtestCardPad: {
     padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  cardHeader: {
+  backtestHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -646,26 +617,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: colors.textPrimary,
-    letterSpacing: 1,
-  },
-  backtestBtn: {
-    backgroundColor: colors.gold,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  backtestBtnText: {
-    color: '#000',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  backtestPrompt: {
-    fontSize: 12,
-    color: colors.textMuted,
-    lineHeight: 18,
+    letterSpacing: 0.8,
   },
   backtestResults: {
-    gap: 8,
+    gap: 6,
   },
   grid3: {
     flexDirection: 'row',
@@ -674,9 +629,17 @@ const styles = StyleSheet.create({
   },
   gridItemSmall: {
     flex: 1,
-    backgroundColor: colors.bgCard,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     padding: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
+  },
+  gridLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 0.5,
   },
   gridValSmall: {
     fontSize: 13,
@@ -684,12 +647,22 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: 2,
   },
-  executeBtn: {
-    borderRadius: 12,
+  backtestPrompt: {
+    fontSize: 12,
+    color: colors.textMuted,
+    lineHeight: 18,
+  },
+  execBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginTop: 4,
+  },
+  execGradient: {
     paddingVertical: 14,
     alignItems: 'center',
+    borderRadius: 14,
   },
-  executeBtnText: {
+  execBtnText: {
     color: '#000',
     fontWeight: '900',
     fontSize: 13,

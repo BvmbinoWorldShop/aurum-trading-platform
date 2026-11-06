@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,18 +10,25 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useApp } from '../../src/context/AppContext';
 import { colors } from '../../src/theme/colors';
 import { HapticTouchable } from '../../src/components/HapticTouchable';
-import { Badge } from '../../src/components/Badge';
-import { Sparkline } from '../../src/components/Sparkline';
-import { api, SignalData } from '../../src/api/endpoints';
+import { GlassCard } from '../../src/components/GlassCard';
+import { GradientPill } from '../../src/components/GradientPill';
+import { TickerBar } from '../../src/components/TickerBar';
+import { api, SignalData, MarketAsset } from '../../src/api/endpoints';
 import { haptic } from '../../src/utils/haptics';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { dashboard, refreshing, refreshDashboard, toggleAutopilot, triggerKillSwitch } = useApp();
   const [executing, setExecuting] = useState<string | null>(null);
+  const [tickerMarkets, setTickerMarkets] = useState<MarketAsset[]>([]);
+
+  useEffect(() => {
+    api.markets().then((m) => setTickerMarkets(m)).catch(() => {});
+  }, []);
 
   const isLive = dashboard?.mode === 'live';
   const autopilotArmed = !!dashboard?.autopilot?.armed;
@@ -31,7 +38,7 @@ export default function HomeScreen() {
     if (!autopilotArmed && isLive) {
       Alert.alert(
         'Arm Live Autopilot?',
-        'You are in LIVE TRADING mode. The bot will automatically execute orders with real capital on your exchange/broker accounts according to risk parameters.',
+        'You are in LIVE TRADING mode. The bot will automatically execute orders with real capital on your exchange/broker accounts.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -49,7 +56,7 @@ export default function HomeScreen() {
   const handleKillSwitch = () => {
     Alert.alert(
       'EMERGENCY KILL SWITCH',
-      'This will IMMEDIATELY halt all autopilot scans and close all open positions across all connected exchanges/brokers at market price.',
+      'This will IMMEDIATELY halt all autopilot scans and close all open positions across all connected exchanges at market price.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -89,58 +96,62 @@ export default function HomeScreen() {
     );
   };
 
-  const fgValue = dashboard?.sentiment?.value ?? 50;
-  const fgColor =
-    fgValue > 60 ? colors.bullish : fgValue < 40 ? colors.bearish : colors.warning;
+  const fgValue = dashboard?.sentiment?.value ?? 55;
+  const fgLabel = dashboard?.sentiment?.label?.toUpperCase() || 'NEUTRAL';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+      {/* Top Glass Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.logoTitle}>AURUM</Text>
-          <Text style={styles.logoSubtitle}>AUTONOMOUS QUANT & AI</Text>
+        <View style={styles.brandRow}>
+          <View style={styles.logoBadge}>
+            <Ionicons name="diamond" size={16} color="#000" />
+          </View>
+          <View>
+            <Text style={styles.logoTitle}>AURUM</Text>
+            <Text style={styles.logoSubtitle}>QUANTUM TERMINAL</Text>
+          </View>
         </View>
 
         <View style={styles.headerActions}>
-          <HapticTouchable
-            style={[styles.iconBtn, { backgroundColor: colors.goldGlow, borderColor: 'rgba(244, 196, 48, 0.3)', borderWidth: 1 }]}
-            onPress={() => router.push('/profile')}
-            hapticType="selection"
-          >
-            <Ionicons name="person" size={18} color={colors.gold} />
-          </HapticTouchable>
-
-          <Badge
-            label={isLive ? 'LIVE' : 'PAPER TRADING'}
-            variant={isLive ? 'gold' : 'purple'}
+          <GradientPill
+            label={isLive ? 'LIVE' : 'PAPER SOVEREIGN'}
+            variant={isLive ? 'gold' : 'royal'}
+            size="sm"
           />
 
           <HapticTouchable
-            style={styles.iconBtn}
-            onPress={() => router.push('/learn')}
+            style={[styles.glassIconBtn, styles.profileHighlight]}
+            onPress={() => router.push('/profile')}
+            hapticType="selection"
           >
-            <Ionicons name="school-outline" size={20} color={colors.textPrimary} />
+            <Ionicons name="person" size={16} color={colors.goldBright} />
           </HapticTouchable>
 
           <HapticTouchable
-            style={styles.iconBtn}
+            style={styles.glassIconBtn}
             onPress={() => router.push('/plugins')}
+            hapticType="selection"
           >
-            <Ionicons name="cube-outline" size={20} color={colors.textPrimary} />
+            <Ionicons name="cube-outline" size={16} color={colors.textPrimary} />
           </HapticTouchable>
 
           <HapticTouchable
-            style={styles.iconBtn}
+            style={styles.glassIconBtn}
             onPress={() => router.push('/settings')}
+            hapticType="selection"
           >
-            <Ionicons name="settings-outline" size={20} color={colors.textPrimary} />
+            <Ionicons name="options-outline" size={16} color={colors.textPrimary} />
           </HapticTouchable>
         </View>
       </View>
 
+      {/* Live Market Ticker Ribbon */}
+      <TickerBar items={tickerMarkets} />
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -149,139 +160,136 @@ export default function HomeScreen() {
           />
         }
       >
-        {/* Equity Card */}
-        <View style={styles.equityCard}>
-          <View style={styles.equityHeader}>
-            <Text style={styles.equityLabel}>TOTAL ESTIMATED NET WORTH</Text>
-            <View style={styles.dailyPnlContainer}>
-              <Text style={styles.pnlLabel}>Today's P&L: </Text>
-              <Text
-                style={[
-                  styles.pnlValue,
-                  {
-                    color:
-                      (dashboard?.daily_pnl ?? 0) >= 0 ? colors.bullish : colors.bearish,
-                  },
-                ]}
-              >
-                {(dashboard?.daily_pnl ?? 0) >= 0 ? '+' : ''}$
-                {(dashboard?.daily_pnl ?? 0).toFixed(2)}
-              </Text>
-            </View>
-          </View>
+        {/* Luxury Hero Portfolio Card */}
+        <View style={styles.heroWrapper}>
+          <LinearGradient
+            colors={['#162238', '#0C1322', '#070A12']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+          >
+            {/* Ambient specular highlight border */}
+            <View style={styles.heroSpecular} />
 
-          <Text style={styles.equityAmount}>
-            ${(dashboard?.equity ?? 10000).toLocaleString('en-US', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </Text>
-
-          {/* Autopilot Bar */}
-          <View style={styles.autopilotRow}>
-            <View style={styles.autopilotStatus}>
-              <View
-                style={[
-                  styles.statusDot,
-                  {
-                    backgroundColor: killSwitchActive
-                      ? colors.bearish
-                      : autopilotArmed
-                      ? colors.bullish
-                      : colors.textMuted,
-                  },
-                ]}
-              />
-              <Text style={styles.autopilotText}>
-                Autopilot:{' '}
-                <Text
-                  style={{
-                    color: killSwitchActive
-                      ? colors.bearish
-                      : autopilotArmed
-                      ? colors.bullish
-                      : colors.textMuted,
-                    fontWeight: '700',
-                  }}
-                >
-                  {killSwitchActive ? 'HALTED (KILL SWITCH)' : autopilotArmed ? 'ARMED & HUNTING' : 'DISARMED'}
+            <View style={styles.heroTop}>
+              <View>
+                <Text style={styles.heroLabel}>TOTAL ESTIMATED NET WORTH</Text>
+                <Text style={styles.heroAmount}>
+                  ${(dashboard?.equity ?? 10000).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                 </Text>
-              </Text>
+              </View>
+
+              <GradientPill
+                label={`${(dashboard?.daily_pnl ?? 0) >= 0 ? '+' : ''}$${(dashboard?.daily_pnl ?? 0).toFixed(2)} 24H`}
+                variant={(dashboard?.daily_pnl ?? 0) >= 0 ? 'bullish' : 'bearish'}
+                size="sm"
+              />
             </View>
 
-            <HapticTouchable
-              style={[
-                styles.armBtn,
-                {
-                  backgroundColor: autopilotArmed ? 'rgba(255, 59, 86, 0.15)' : 'rgba(0, 230, 118, 0.15)',
-                  borderColor: autopilotArmed ? colors.bearish : colors.bullish,
-                },
-              ]}
-              hapticType="medium"
-              onPress={handleToggleAutopilot}
-            >
-              <Ionicons
-                name={autopilotArmed ? 'pause' : 'play'}
-                size={14}
-                color={autopilotArmed ? colors.bearish : colors.bullish}
+            {/* Glass Autopilot Control Strip */}
+            <View style={styles.autopilotStrip}>
+              <View style={styles.autopilotLeft}>
+                <View
+                  style={[
+                    styles.pulseDot,
+                    {
+                      backgroundColor: killSwitchActive
+                        ? colors.bearish
+                        : autopilotArmed
+                        ? colors.bullish
+                        : colors.textMuted,
+                      shadowColor: killSwitchActive
+                        ? colors.bearish
+                        : autopilotArmed
+                        ? colors.bullish
+                        : 'transparent',
+                    },
+                  ]}
+                />
+                <View>
+                  <Text style={styles.autopilotTitle}>
+                    {killSwitchActive
+                      ? 'EMERGENCY HALT'
+                      : autopilotArmed
+                      ? 'AUTOPILOT SCANNING'
+                      : 'AUTOPILOT STANDBY'}
+                  </Text>
+                  <Text style={styles.autopilotSub}>
+                    {autopilotArmed
+                      ? 'AI Triple-Barrier Models Active'
+                      : 'Manual confirmation required'}
+                  </Text>
+                </View>
+              </View>
+
+              <GradientPill
+                label={autopilotArmed ? 'PAUSE BOT' : 'ARM AUTOPILOT'}
+                variant={autopilotArmed ? 'bearish' : 'bullish'}
+                icon={
+                  <Ionicons
+                    name={autopilotArmed ? 'pause' : 'flash'}
+                    size={13}
+                    color="#000"
+                  />
+                }
+                size="sm"
+                onPress={handleToggleAutopilot}
               />
-              <Text
-                style={[
-                  styles.armBtnText,
-                  { color: autopilotArmed ? colors.bearish : colors.bullish },
-                ]}
-              >
-                {autopilotArmed ? 'Disarm' : 'Arm Bot'}
-              </Text>
-            </HapticTouchable>
-          </View>
+            </View>
+          </LinearGradient>
         </View>
 
-        {/* Psychology / Fear & Greed Gauge */}
-        <View style={styles.card}>
+        {/* Market Psychology & Fear/Greed Pod */}
+        <GlassCard glowColor="gold" borderRadius={20} style={styles.cardPad}>
           <View style={styles.cardHeader}>
-            <View style={styles.cardTitleRow}>
-              <Ionicons name="pulse" size={18} color={colors.gold} />
-              <Text style={styles.cardTitle}>MARKET PSYCHOLOGY</Text>
+            <View style={styles.headerLeft}>
+              <Ionicons name="pulse" size={18} color={colors.goldBright} />
+              <Text style={styles.cardHeaderTitle}>MARKET PSYCHOLOGY RADAR</Text>
             </View>
-            <Text style={[styles.sentimentLabel, { color: fgColor }]}>
-              {dashboard?.sentiment?.label?.toUpperCase() || 'NEUTRAL'} ({fgValue}/100)
-            </Text>
-          </View>
-
-          <View style={styles.progressBg}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${Math.min(100, Math.max(0, fgValue))}%`, backgroundColor: fgColor },
-              ]}
+            <GradientPill
+              label={`${fgLabel} (${fgValue}/100)`}
+              variant={fgValue > 60 ? 'bullish' : fgValue < 40 ? 'bearish' : 'gold'}
+              size="sm"
             />
           </View>
 
-          <Text style={styles.sentimentSubtext}>
-            {fgValue < 25
-              ? 'Extreme Fear: High retail panic. Quant models search for accumulation opportunities.'
-              : fgValue > 75
-              ? 'Extreme Greed: Retail euphoria. AI applies tighter stops to guard against sharp pullbacks.'
-              : 'Balanced Sentiment: Normal market conditions with steady liquidity.'}
-          </Text>
-        </View>
+          {/* Gradient Glow Meter */}
+          <View style={styles.gaugeTrack}>
+            <LinearGradient
+              colors={['#FF416C', '#F4C430', '#00F5A0']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.gaugeFill, { width: `${Math.min(100, Math.max(5, fgValue))}%` }]}
+            />
+          </View>
 
-        {/* Top AI Signals */}
-        <View style={styles.card}>
+          <Text style={styles.psychologyText}>
+            {fgValue < 30
+              ? 'Extreme Fear Detected: Retail capitulation in progress. Quant engine actively evaluates oversold value accumulation.'
+              : fgValue > 70
+              ? 'Extreme Greed Detected: Retail euphoria. AI applies tighter trailing stops to safeguard accumulated unrealized gains.'
+              : 'Equilibrium Sentiment: Order book depth is balanced with steady liquidity flow across major asset classes.'}
+          </Text>
+        </GlassCard>
+
+        {/* Quant Signal Intelligence */}
+        <GlassCard glowColor="cyan" borderRadius={20} style={styles.cardPad}>
           <View style={styles.cardHeader}>
-            <View style={styles.cardTitleRow}>
-              <Ionicons name="hardware-chip" size={18} color={colors.gold} />
-              <Text style={styles.cardTitle}>HIGH-CONFIDENCE SIGNALS</Text>
+            <View style={styles.headerLeft}>
+              <Ionicons name="hardware-chip" size={18} color={colors.cyan} />
+              <Text style={styles.cardHeaderTitle}>HIGH-CONFIDENCE QUANT SIGNALS</Text>
             </View>
             <HapticTouchable onPress={() => router.push('/(tabs)/markets')}>
-              <Text style={styles.linkText}>View All</Text>
+              <Text style={styles.viewAllText}>Radar View ›</Text>
             </HapticTouchable>
           </View>
 
           {(!dashboard?.top_signals || dashboard.top_signals.length === 0) ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>Scanning markets for high-probability setups...</Text>
+            <View style={styles.emptySignals}>
+              <Text style={styles.emptyText}>Scanning 5 markets for calibrated confluence...</Text>
             </View>
           ) : (
             dashboard.top_signals.slice(0, 4).map((sig) => {
@@ -290,92 +298,92 @@ export default function HomeScreen() {
               const isFlat = sig.direction === 'FLAT';
 
               return (
-                <View key={sig.symbol} style={styles.signalRow}>
+                <View key={sig.symbol} style={styles.signalItem}>
                   <View style={styles.signalLeft}>
-                    <Text style={styles.symbolText}>{sig.symbol}</Text>
-                    <Text style={styles.assetName}>{sig.name || sig.asset_class}</Text>
-                    <View style={styles.badgeRow}>
-                      <Badge
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.signalSymbol}>{sig.symbol}</Text>
+                      <GradientPill
                         label={sig.direction}
                         variant={isLong ? 'bullish' : isShort ? 'bearish' : 'neutral'}
+                        size="sm"
                       />
-                      <Text style={styles.confidenceText}>
-                        Conf: {(sig.confidence * 100).toFixed(0)}%
-                      </Text>
                     </View>
+                    <Text style={styles.signalAssetSub}>
+                      {sig.name || sig.asset_class} · Conf: <Text style={{ color: colors.goldBright, fontWeight: '800' }}>{(sig.confidence * 100).toFixed(0)}%</Text>
+                    </Text>
                   </View>
 
                   <View style={styles.signalRight}>
-                    <Text style={styles.priceText}>
+                    <Text style={styles.signalPrice}>
                       ${sig.price < 10 ? sig.price.toFixed(4) : sig.price.toLocaleString()}
                     </Text>
+
                     {!isFlat && (
-                      <HapticTouchable
-                        style={[
-                          styles.actionBtn,
-                          {
-                            backgroundColor: isLong ? colors.bullish : colors.bearish,
-                            opacity: executing === sig.symbol ? 0.6 : 1,
-                          },
-                        ]}
-                        hapticType="medium"
+                      <GradientPill
+                        label={executing === sig.symbol ? '...' : isLong ? 'BUY' : 'SELL'}
+                        variant={isLong ? 'bullish' : 'bearish'}
+                        size="sm"
                         onPress={() => handleQuickExecute(sig)}
-                        disabled={executing === sig.symbol}
-                      >
-                        <Text style={styles.actionBtnText}>
-                          {executing === sig.symbol ? '...' : isLong ? 'BUY' : 'SELL'}
-                        </Text>
-                      </HapticTouchable>
+                      />
                     )}
                   </View>
                 </View>
               );
             })
           )}
-        </View>
+        </GlassCard>
 
         {/* Active Positions */}
-        <View style={styles.card}>
+        <GlassCard borderRadius={20} style={styles.cardPad}>
           <View style={styles.cardHeader}>
-            <View style={styles.cardTitleRow}>
+            <View style={styles.headerLeft}>
               <Ionicons name="swap-horizontal" size={18} color={colors.gold} />
-              <Text style={styles.cardTitle}>ACTIVE POSITIONS ({dashboard?.open_trades?.length ?? 0})</Text>
+              <Text style={styles.cardHeaderTitle}>
+                ACTIVE POSITIONS ({dashboard?.open_trades?.length ?? 0})
+              </Text>
             </View>
             <HapticTouchable onPress={() => router.push('/(tabs)/trades')}>
-              <Text style={styles.linkText}>Manage</Text>
+              <Text style={styles.viewAllText}>Manage ›</Text>
             </HapticTouchable>
           </View>
 
           {(!dashboard?.open_trades || dashboard.open_trades.length === 0) ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No positions currently open.</Text>
+            <View style={styles.emptySignals}>
+              <Text style={styles.emptyText}>No positions currently active in market.</Text>
             </View>
           ) : (
             dashboard.open_trades.map((t) => (
               <View key={t.id} style={styles.positionRow}>
                 <View>
-                  <Text style={styles.symbolText}>{t.symbol}</Text>
-                  <Text style={styles.subDetail}>
+                  <Text style={styles.signalSymbol}>{t.symbol}</Text>
+                  <Text style={styles.positionDetails}>
                     {t.side} · Qty: {t.qty.toFixed(4)} · Entry: ${t.entry.toFixed(2)}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Badge label="IN PLAY" variant="gold" />
-                  <Text style={styles.stopText}>SL: ${t.stop.toFixed(2)}</Text>
+                  <GradientPill label="LIVE IN PLAY" variant="gold" size="sm" />
+                  <Text style={styles.stopLossText}>SL: ${t.stop.toFixed(2)}</Text>
                 </View>
               </View>
             ))
           )}
-        </View>
+        </GlassCard>
 
         {/* Emergency Kill Switch */}
         <HapticTouchable
-          style={styles.killSwitchBtn}
+          style={styles.killBtn}
           hapticType="heavy"
           onPress={handleKillSwitch}
         >
-          <Ionicons name="alert-circle" size={20} color="#FFF" />
-          <Text style={styles.killSwitchText}>EMERGENCY KILL SWITCH (CLOSE ALL)</Text>
+          <LinearGradient
+            colors={['#8B0000', '#550000']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.killGradient}
+          >
+            <Ionicons name="shield-outline" size={18} color="#FFF" />
+            <Text style={styles.killText}>EMERGENCY KILL SWITCH (LIQUIDATE ALL)</Text>
+          </LinearGradient>
         </HapticTouchable>
       </ScrollView>
     </SafeAreaView>
@@ -385,215 +393,218 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgPrimary,
+    backgroundColor: colors.bgVoid,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(8, 12, 20, 0.95)',
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderGlass,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
   },
   logoTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '900',
     letterSpacing: 2,
-    color: colors.gold,
+    color: colors.textPrimary,
   },
   logoSubtitle: {
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 8,
+    fontWeight: '800',
     letterSpacing: 1.5,
-    color: colors.textSecondary,
+    color: colors.gold,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  iconBtn: {
-    padding: 6,
-    backgroundColor: colors.bgElevated,
-    borderRadius: 8,
+  glassIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileHighlight: {
+    backgroundColor: 'rgba(244, 196, 48, 0.12)',
+    borderColor: 'rgba(244, 196, 48, 0.35)',
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
     gap: 16,
+    paddingBottom: 40,
   },
-  equityCard: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+  heroWrapper: {
+    borderRadius: 22,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  heroCard: {
     padding: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    position: 'relative',
   },
-  equityHeader: {
+  heroSpecular: {
+    position: 'absolute',
+    top: 0,
+    left: '10%',
+    right: '10%',
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  equityLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textMuted,
-    letterSpacing: 1,
-  },
-  dailyPnlContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pnlLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  pnlValue: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  equityAmount: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    letterSpacing: 0.5,
+    alignItems: 'flex-start',
     marginBottom: 16,
   },
-  autopilotRow: {
+  heroLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: colors.textMuted,
+    letterSpacing: 1.2,
+  },
+  heroAmount: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
+    marginTop: 4,
+  },
+  autopilotStrip: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: colors.bgCard,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
     padding: 12,
-    borderRadius: 12,
   },
-  autopilotStatus: {
+  autopilotLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  statusDot: {
+  pulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 8,
   },
-  autopilotText: {
-    fontSize: 12,
-    color: colors.textSecondary,
+  autopilotTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
   },
-  armBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
+  autopilotSub: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginTop: 1,
   },
-  armBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  card: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
+  cardPad: {
     padding: 16,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  cardTitleRow: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  cardTitle: {
+  cardHeaderTitle: {
     fontSize: 12,
     fontWeight: '800',
     color: colors.textPrimary,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
-  linkText: {
+  viewAllText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.gold,
   },
-  sentimentLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  progressBg: {
+  gaugeTrack: {
     height: 8,
-    backgroundColor: colors.bgElevated,
     borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     overflow: 'hidden',
     marginBottom: 10,
   },
-  progressFill: {
+  gaugeFill: {
     height: '100%',
     borderRadius: 4,
   },
-  sentimentSubtext: {
+  psychologyText: {
     fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 18,
   },
-  signalRow: {
+  signalItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderGlass,
   },
   signalLeft: {
     flex: 1,
   },
-  symbolText: {
-    fontSize: 16,
-    fontWeight: '700',
+  signalSymbol: {
+    fontSize: 15,
+    fontWeight: '800',
     color: colors.textPrimary,
   },
-  assetName: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 4,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  confidenceText: {
+  signalAssetSub: {
     fontSize: 11,
-    color: colors.textSecondary,
+    color: colors.textMuted,
+    marginTop: 4,
   },
   signalRight: {
     alignItems: 'flex-end',
     gap: 6,
   },
-  priceText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  actionBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  actionBtnText: {
-    color: '#000',
+  signalPrice: {
+    fontSize: 14,
     fontWeight: '800',
-    fontSize: 12,
-    letterSpacing: 0.5,
+    color: colors.textPrimary,
   },
   positionRow: {
     flexDirection: 'row',
@@ -601,40 +612,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderGlass,
   },
-  subDetail: {
-    fontSize: 12,
+  positionDetails: {
+    fontSize: 11,
     color: colors.textSecondary,
     marginTop: 2,
   },
-  stopText: {
-    fontSize: 11,
+  stopLossText: {
+    fontSize: 10,
     color: colors.textMuted,
     marginTop: 4,
   },
-  emptyState: {
-    paddingVertical: 16,
+  emptySignals: {
+    paddingVertical: 20,
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textMuted,
   },
-  killSwitchBtn: {
+  killBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginTop: 4,
+  },
+  killGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#8B0000',
-    borderRadius: 12,
+    gap: 8,
     paddingVertical: 14,
-    marginTop: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 65, 108, 0.4)',
   },
-  killSwitchText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 13,
+  killText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '900',
     letterSpacing: 0.8,
   },
 });

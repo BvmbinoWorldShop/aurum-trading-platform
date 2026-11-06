@@ -12,7 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../src/theme/colors';
 import { HapticTouchable } from '../../src/components/HapticTouchable';
-import { Badge } from '../../src/components/Badge';
+import { GlassCard } from '../../src/components/GlassCard';
+import { GradientPill } from '../../src/components/GradientPill';
 import { api, Trade } from '../../src/api/endpoints';
 import { useApp } from '../../src/context/AppContext';
 import { haptic } from '../../src/utils/haptics';
@@ -76,67 +77,74 @@ export default function TradesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+      {/* Top Glass Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>TRADE MANAGEMENT</Text>
-        <Text style={styles.subtitle}>Execution monitoring & audited journal</Text>
+        <View>
+          <Text style={styles.title}>EXECUTION ENGINE</Text>
+          <Text style={styles.subtitle}>Audited ledger & position lifecycle</Text>
+        </View>
+
+        <GradientPill
+          label={tab === 'open' ? 'ACTIVE' : 'AUDITED'}
+          variant="gold"
+          size="sm"
+        />
       </View>
 
-      {/* Performance Bar */}
-      <View style={styles.perfBar}>
-        <View style={styles.perfItem}>
-          <Text style={styles.perfLabel}>NET REALIZED</Text>
-          <Text
-            style={[
-              styles.perfVal,
-              { color: (stats?.net_pnl ?? 0) >= 0 ? colors.bullish : colors.bearish },
-            ]}
-          >
-            {(stats?.net_pnl ?? 0) >= 0 ? '+' : ''}${(stats?.net_pnl ?? 0).toFixed(2)}
-          </Text>
-        </View>
+      {/* Glassmorphic Performance Bar */}
+      <View style={styles.perfWrapper}>
+        <GlassCard glowColor="gold" borderRadius={16} style={styles.perfBar}>
+          <View style={styles.perfItem}>
+            <Text style={styles.perfLabel}>NET REALIZED</Text>
+            <Text
+              style={[
+                styles.perfVal,
+                { color: (stats?.net_pnl ?? 0) >= 0 ? colors.bullish : colors.bearish },
+              ]}
+            >
+              {(stats?.net_pnl ?? 0) >= 0 ? '+' : ''}${(stats?.net_pnl ?? 0).toFixed(2)}
+            </Text>
+          </View>
 
-        <View style={styles.perfItem}>
-          <Text style={styles.perfLabel}>HISTORICAL WIN RATE</Text>
-          <Text style={[styles.perfVal, { color: colors.gold }]}>
-            {stats?.win_rate ? `${(stats.win_rate * 100).toFixed(1)}%` : 'N/A'}
-          </Text>
-        </View>
+          <View style={styles.perfItem}>
+            <Text style={styles.perfLabel}>HISTORICAL WIN RATE</Text>
+            <Text style={[styles.perfVal, { color: colors.goldBright }]}>
+              {stats?.win_rate ? `${(stats.win_rate * 100).toFixed(1)}%` : 'N/A'}
+            </Text>
+          </View>
 
-        <View style={styles.perfItem}>
-          <Text style={styles.perfLabel}>PROFIT FACTOR</Text>
-          <Text style={styles.perfVal}>
-            {stats?.profit_factor ? stats.profit_factor.toFixed(2) : 'N/A'}
-          </Text>
-        </View>
+          <View style={styles.perfItem}>
+            <Text style={styles.perfLabel}>PROFIT FACTOR</Text>
+            <Text style={styles.perfVal}>
+              {stats?.profit_factor ? stats.profit_factor.toFixed(2) : 'N/A'}
+            </Text>
+          </View>
+        </GlassCard>
       </View>
 
-      {/* Segmented Control */}
+      {/* Gradient Segmented Control */}
       <View style={styles.tabContainer}>
-        <HapticTouchable
-          style={[styles.segmentBtn, tab === 'open' && styles.segmentBtnActive]}
-          hapticType="selection"
+        <GradientPill
+          label={`ACTIVE POSITIONS (${dashboard?.open_trades?.length ?? 0})`}
+          variant={tab === 'open' ? 'gold' : 'glass'}
+          active={tab === 'open'}
+          size="sm"
           onPress={() => setTab('open')}
-        >
-          <Text style={[styles.segmentText, tab === 'open' && styles.segmentTextActive]}>
-            Active Positions ({dashboard?.open_trades?.length ?? 0})
-          </Text>
-        </HapticTouchable>
+        />
 
-        <HapticTouchable
-          style={[styles.segmentBtn, tab === 'closed' && styles.segmentBtnActive]}
-          hapticType="selection"
+        <GradientPill
+          label={`CLOSED HISTORY (${stats?.closed_trades ?? 0})`}
+          variant={tab === 'closed' ? 'gold' : 'glass'}
+          active={tab === 'closed'}
+          size="sm"
           onPress={() => setTab('closed')}
-        >
-          <Text style={[styles.segmentText, tab === 'closed' && styles.segmentTextActive]}>
-            Closed History ({stats?.closed_trades ?? 0})
-          </Text>
-        </HapticTouchable>
+        />
       </View>
 
       {/* List */}
       <ScrollView
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -155,12 +163,12 @@ export default function TradesScreen() {
           <View style={styles.emptyContainer}>
             <Ionicons name="documents-outline" size={40} color={colors.textMuted} />
             <Text style={styles.emptyTitle}>
-              {tab === 'open' ? 'No Open Positions' : 'No Closed Trades Yet'}
+              {tab === 'open' ? 'No Active Positions' : 'No Closed Trades Recorded'}
             </Text>
             <Text style={styles.emptySub}>
               {tab === 'open'
-                ? 'Autopilot or manual orders will appear here in real-time.'
-                : 'Closed orders will be recorded with full trade auditing.'}
+                ? 'Autopilot or manual orders will stream here with real-time execution feedback.'
+                : 'Closed orders will be recorded with immutable audited parameters.'}
             </Text>
           </View>
         ) : (
@@ -171,15 +179,25 @@ export default function TradesScreen() {
             const isProfit = pnl >= 0;
 
             return (
-              <View key={t.id} style={styles.tradeCard}>
+              <GlassCard
+                key={t.id}
+                glowColor={isClosed ? (isProfit ? 'bullish' : 'bearish') : 'gold'}
+                borderRadius={18}
+                style={styles.tradeCard}
+              >
                 <View style={styles.cardTop}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={styles.tradeSymbol}>{t.symbol}</Text>
-                    <Badge
+                    <GradientPill
                       label={t.side}
                       variant={isLong ? 'bullish' : 'bearish'}
+                      size="sm"
                     />
-                    <Badge label={t.broker.toUpperCase()} variant="neutral" />
+                    <GradientPill
+                      label={t.broker.toUpperCase()}
+                      variant="glass"
+                      size="sm"
+                    />
                   </View>
 
                   {isClosed ? (
@@ -192,18 +210,12 @@ export default function TradesScreen() {
                       {isProfit ? '+' : ''}${pnl.toFixed(2)}
                     </Text>
                   ) : (
-                    <HapticTouchable
-                      style={styles.closeBtn}
+                    <GradientPill
+                      label="CLOSE"
+                      variant="bearish"
+                      size="sm"
                       onPress={() => handleClose(t)}
-                      disabled={closingId === t.id}
-                      hapticType="medium"
-                    >
-                      {closingId === t.id ? (
-                        <ActivityIndicator size="small" color="#FFF" />
-                      ) : (
-                        <Text style={styles.closeBtnText}>Close</Text>
-                      )}
-                    </HapticTouchable>
+                    />
                   )}
                 </View>
 
@@ -234,7 +246,7 @@ export default function TradesScreen() {
                 {/* Footer details */}
                 <View style={styles.cardFooter}>
                   <Text style={styles.footerText}>
-                    Source: <Text style={{ color: colors.textPrimary }}>{t.source}</Text>
+                    Trigger: <Text style={{ color: colors.textPrimary }}>{t.source}</Text>
                     {t.close_reason && ` · Reason: ${t.close_reason}`}
                   </Text>
                   <Text style={styles.footerTime}>
@@ -244,7 +256,7 @@ export default function TradesScreen() {
                     })}
                   </Text>
                 </View>
-              </View>
+              </GlassCard>
             );
           })
         )}
@@ -256,76 +268,58 @@ export default function TradesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgPrimary,
+    backgroundColor: colors.bgVoid,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 10,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderGlass,
   },
   title: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textPrimary,
     letterSpacing: 1,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  perfWrapper: {
+    paddingHorizontal: 16,
+    marginTop: 10,
   },
   perfBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: colors.bgSecondary,
-    marginHorizontal: 16,
-    marginTop: 10,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    padding: 14,
   },
   perfItem: {
     alignItems: 'center',
   },
   perfLabel: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textMuted,
     letterSpacing: 0.5,
   },
   perfVal: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '900',
     color: colors.textPrimary,
     marginTop: 2,
   },
   tabContainer: {
     flexDirection: 'row',
-    marginHorizontal: 16,
+    paddingHorizontal: 16,
     marginTop: 12,
-    backgroundColor: colors.bgSecondary,
-    borderRadius: 10,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  segmentBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  segmentBtnActive: {
-    backgroundColor: colors.bgElevated,
-  },
-  segmentText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textMuted,
-  },
-  segmentTextActive: {
-    color: colors.textPrimary,
+    gap: 8,
   },
   listContent: {
     padding: 16,
@@ -333,11 +327,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   tradeCard: {
-    backgroundColor: colors.bgSecondary,
-    borderRadius: 14,
     padding: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   cardTop: {
     flexDirection: 'row',
@@ -352,40 +342,29 @@ const styles = StyleSheet.create({
   },
   pnlText: {
     fontSize: 16,
-    fontWeight: '800',
-  },
-  closeBtn: {
-    backgroundColor: 'rgba(255, 59, 86, 0.15)',
-    borderWidth: 1,
-    borderColor: colors.bearish,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  closeBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.bearish,
+    fontWeight: '900',
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: colors.bgCard,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: colors.borderGlass,
   },
   statCol: {
     alignItems: 'center',
   },
   statLabel: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textMuted,
   },
   statValue: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textPrimary,
     marginTop: 2,
   },
@@ -409,7 +388,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textPrimary,
   },
   emptySub: {
